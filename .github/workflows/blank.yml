@@ -9,4 +9,4 @@ jobs:
     
     steps:
       - name: compile check
-        run: docker run --rm -v $(pwd):/home/opam/satysfi amutake/satysfi satysfi ${pwd}/test/test.saty -o ${pwd}/test/test.pdf
+        run: docker run --rm -v $(pwd):/home/opam/satysfi amutake/satysfi satysfi /home/runner/work/make-puzzle/make-puzzle/test/test.saty -o /home/runner/work/make-puzzle/make-puzzle/test/test.pdf
