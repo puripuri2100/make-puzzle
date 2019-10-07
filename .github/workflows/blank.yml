@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: compile check
+      - name: satysfi install
         uses: docker://amutake/satysfi:0.0.3-dev2019.07.14
+      - name: compile check
         run: satysfi test/test.saty -o test/test.pdf
