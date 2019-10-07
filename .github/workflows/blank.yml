@@ -8,5 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - uses: actions/checkout@master
       - name: compile check
-        run: docker run --rm -v $(pwd):/home/opam/satysfi amutake/satysfi satysfi /home/runner/work/make-puzzle/make-puzzle/test/test.saty -o /home/runner/work/make-puzzle/make-puzzle/test/test.pdf
+        run: docker run --rm -v $(pwd):/home/opam/satysfi amutake/satysfi satysfi --type-check-only /home/runner/work/make-puzzle/make-puzzle/test/test.saty
