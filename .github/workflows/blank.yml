@@ -1,0 +1,13 @@
+name: make-puzzle-CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: docker://amutake/satysfi:0.0.3-dev2019.07.14
+    - name: Run a one-line script
+      run: satysfi test/test.saty -o test/test.pdf
