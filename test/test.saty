@@ -1,0 +1,175 @@
+@require: stdjabook
+
+@import: ../slither
+@import: ../nurikabe
+@import: ../akari
+@import: ../yajirin
+
+
+let-block ctx +clear-page = clear-page
+
+in
+
+document (|
+  title = {パズル描画テスト};
+  author = {puripuri2100};
+  show-title = true;
+  show-toc = false;
+|) '<
+  +p{
+    \slither(10)(10)[
+      {|2|2|1| |3| |3| | |3|};
+      {|3| |1| | |2| | |2| |};
+      {| |1| | |1| | | |3|2|};
+      {| | |3|1| |1|3|3| | |};
+      {|3| |1| |0| | | | | |};
+      {| | | | | |1| |3| |3|};
+      {| | |3|2|0| |1|0| | |};
+      {|1|2| | | |1| | |0| |};
+      {| |1| | |3| | |3| |3|};
+      {|3| | |1| |0| |1|2|3|};
+    ]
+    [
+      [[Top;Left];[Top;Bottom];[Top];[Top];[Top;Right;Bottom];[Right];[Top;Right];[Bottom];[Bottom;Right];[Top;Right]];
+      [[Left;Bottom;Right];[Right];[];[Right];[Bottom];[Bottom;Right];[];[];[Bottom];[Right]];
+      [[];[Right];[Bottom];[];[];[];[Bottom];[Right];[Right];[Right]];
+      [[Bottom];[Bottom];[Bottom;Right];[];[];[Right];[Right];[Bottom;Right];[Right];[Bottom;Right]];
+      [[Left;Bottom];[];[];[];[];[Right];[];[Bottom];[];[Bottom]];
+      [[Right];[];[Bottom];[];[];[Right];[Bottom;Right];[Right];[Bottom;Right];[Right]];
+      [[Right];[Right];[Right];[Bottom];[];[];[];[];[];[Right]];
+      [[Right];[Right];[Bottom];[Right];[];[Bottom];[];[Bottom];[];[Bottom;Right]];
+      [[Bottom;Right];[];[Right];[Right];[Bottom;Right];[Right];[Bottom;Right];[Right];[Right];[Bottom]];
+      [[Left;Bottom];[Bottom];[Bottom;Right];[];[];[];[];[Right];[Bottom];[Bottom;Right]]
+    ];
+  }
+  +p{
+    \nurikabe(7)(7)[
+      {|2| |3| | | | |};
+      {| | | | | | |4|};
+      {| | | | |1| | |};
+      {| | | | | |4| |};
+      {| | | | | | | |};
+      {| | |2| |2| | |};
+      {| |5| | | | | |};
+    ][
+    ];
+
+    \nurikabe(7)(7)[
+      {|2| |3| | | | |};
+      {| | | | | | |4|};
+      {| | | | |1| | |};
+      {| | | | | |4| |};
+      {| | | | | | | |};
+      {| | |2| |2| | |};
+      {| |5| | | | | |};
+    ][
+      [false;true;false;true;false;false;false];
+      [false;true;false;true;true;true;false];
+      [true;true;false;true;false;true;true];
+      [false;true;true;true;true;false;false];
+      [false;true;false;true;false;true;false];
+      [false;true;false;true;false;true;false];
+      [false;false;true;true;true;true;true]
+    ];
+  }
+
+  +clear-page;
+
+  +p{
+    \akari(10)(10)[
+      [];
+      [false;false;true;false;false;false;true];
+      [false;false;false;false;false;false;true;false;true];
+      [false;true;true;true;true;true;true;false;true];
+      [false;false;false;true;false;false;true];
+      [false;false;false;true;false;false;true];
+      [false;false;false;true;true;true;true;true;true];
+      [false;true;false;true];
+      [false;false;false;true;false;false;false;true]
+    ][
+      {||};
+      {|||2||||2|};
+      {|||||||||1|};
+      {||2|1|};
+      {|||||||0|};
+      {||};
+      {|||||||||3|};
+      {||2|};
+      {||||||||2|};
+    ][
+      (7, 10);
+      (2, 9); (6, 9); (9, 9);
+      (3, 8);
+      (1, 7); (8, 7);
+      (2, 6); (5, 6);
+      (6, 5); (9, 5);
+      (10, 4);
+      (3, 3); (9, 3);
+      (2, 2); (7, 2);
+      (8, 1);
+    ];
+  }
+
+  +p{
+    \yajirin(10)(10)[
+      {||||||\arrowDown{5}||\arrowLeft{0}|\arrowUp{0}|\arrowDown{3}|};
+      {||\arrowDown{3}|};
+      {||};
+      {|\arrowRight{3}|};
+      {||};
+      {||};
+      {|\arrowRight{3}||\arrowDown{0}|};
+      {||};
+      {|||\arrowDown{0}|}
+    ]
+    [][];
+
+    \yajirin(10)(10)[
+      {||||||\arrowDown{5}||||\arrowDown{3}|};
+      {||\arrowDown{3}|};
+      {||};
+      {|\arrowRight{3}|};
+      {||};
+      {||};
+      {|\arrowRight{3}||\arrowDown{0}|};
+      {||};
+      {|||\arrowDown{0}|}
+    ]
+    [
+      (1, 1); (5, 1); (5, 2); (7, 2); (7, 1);
+      (9, 1); (9, 2); (10, 2); (10, 3); (9, 3);
+      (9, 5); (10, 5); (10, 6); (9, 6); (9, 8);
+      (10, 8); (10, 9); (9, 9); (9, 10); (7, 10);
+      (7, 9); (8, 9); (8, 7); (7, 7); (7, 8);
+      (5, 8); (5, 7); (4, 7); (4, 9); (5, 9);
+      (5, 10); (1, 10); (1, 8); (3, 8); (3, 6);
+      (1, 6); (1, 5); (5, 5); (5, 6); (7, 6);
+      (7, 5); (8, 5); (8, 3); (7, 3); (7, 4);
+      (5, 4); (5, 3); (1, 3); (1,1)
+    ][
+      (3, 9); (6, 9);
+      (2, 7); (6, 7); (10, 7);
+      (4, 6); (8, 6);
+      (6, 5);
+      (2, 4); (4, 4); (10, 4);
+      (6, 3);
+      (2, 2); (4, 2); (8, 2);
+      (6, 1); (10, 1);
+    ];
+  }
+
+  +clear-page;
+
+  +p{
+    \yajirin(10)(10)[
+      {|||||||？|||\arrowDownLeft{3}|};
+      {||\arrowDown{3}||\arrowDownRight{0}|||\arrowRight{0}|};
+      {||};
+      {||||\arrowLeft{1}|||||\arrowDown{2}|};
+      {||};
+      {||||\arrowDownRight{1}|};
+      {|||||||\arrowDownRight{2}|};
+    ]
+    [][];
+  }
+>

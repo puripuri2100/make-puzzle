@@ -1,0 +1,84 @@
+@require: gr
+@require: color
+@import: puzzle
+
+module Nurikabe : sig
+  direct \nurikabe : [int; int; (inline-text list) list; (bool list) list] inline-cmd
+
+end = struct
+
+  let cell-w = 8mm
+  let cell-h = 8mm
+
+  let thick-t = 1.5pt
+  let thin-t = 0.5pt
+  let c = Color.black
+
+let draw-thick-h = PuzzleCellDesign.stroke-line-h thick-t c
+
+let draw-thick-v = PuzzleCellDesign.stroke-line-v thick-t c
+
+let draw-thin-h = PuzzleCellDesign.stroke-line-h thin-t c
+
+let draw-thin-v = PuzzleCellDesign.stroke-line-v thin-t c
+
+
+let make-board w h d lst1 lst2 lst3 =
+  let frame-lst = Puzzle.make-frame-list lst1 in
+  let lattice-lst = Puzzle.make-lattice-list lst1 in
+  let frame-graphics-lst =
+    Puzzle.make-frame-graphics cell-w cell-h draw-thick-h draw-thick-v frame-lst
+  in
+  let lattice-graphics-lst =
+    Puzzle.make-lattice-graphics cell-w cell-h draw-thin-h draw-thin-v lattice-lst
+  in
+  let cell-lst = Puzzle.make-cell-graphics cell-w cell-h lst2 in
+  let main-list = List.append frame-graphics-lst lattice-graphics-lst in
+    Puzzle.draw-board w h d main-list cell-lst
+
+
+let-inline ctx \nurikabe x y it-lst-lst nuri =
+  let w = cell-w *' (float x) in
+  let h = cell-h *' (float y) in
+  let d = 0mm in
+  let cell-lst = Puzzle.make-rectangle-board x y in
+  let strokef path =
+    let t = 0.5pt in
+    let c = Color.black in
+      stroke t c path
+  in
+  let q-board =
+    let to-ib it =
+      read-inline ctx it
+    in
+    let to-puzzle i =
+      let ib = to-ib i in
+        [(1, Object (0.5, 0.5, ib))]
+    in
+    let ib-lst-lst =
+      List.map (List.map to-puzzle) it-lst-lst
+    in
+    let nuri-lst =
+      let to-puzzle b =
+        let ib =
+          let c = Color.black in
+          let gr =
+            Gr.rectangle (0pt, 0pt) (cell-w, cell-h) |> fill c
+          in
+            inline-graphics cell-w cell-h 0mm (fun p -> [shift-graphics p gr])
+        in
+          if b then
+            [(2, Object (0.5, 0.5, ib))]
+          else
+            []
+      in
+        List.map (List.map to-puzzle) nuri
+    in
+    let main-lst-lst =
+      Puzzle.combine ib-lst-lst cell-lst |> Puzzle.combine nuri-lst
+    in
+      List.map (List.map (Puzzle.puzzle-sieve 0 2)) main-lst-lst
+  in
+    make-board w h d cell-lst q-board []
+
+end

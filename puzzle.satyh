@@ -1,0 +1,479 @@
+@require: list
+@require: gr
+@require: color
+
+
+type puzzle-line-pos =
+  | Top
+  | Bottom
+  | Left
+  | Right
+
+type puzzle-contents =
+  | Object of float * float * inline-boxes
+  | Line   of (path -> graphics) * (float * float) * (int * int * float * float)
+  | Other  of length -> length -> int -> int -> graphics
+
+type puzzle =
+  | NormalPuzzle of (int * puzzle-contents) list
+  | NullPuzzle
+
+module Puzzle : sig
+
+  val add-cell : (int * int) -> (int * puzzle-contents) list -> (puzzle list) list -> (puzzle list) list
+  val h2v : (puzzle list) list -> (puzzle list) list
+  val add-frame-line : int -> puzzle list -> (int * int) list
+  val add-lattice-line : int -> puzzle list -> (int * int) list
+  val make-line-list : (int -> puzzle list -> (int * int) list) -> (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
+  val make-frame-list : (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
+  val make-lattice-list : (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
+  val make-board : (int * int) list -> (puzzle list) list
+  val make-rectangle-board : int -> int -> (puzzle list) list
+  val coordinate-list-list : ('a list) list -> ((int * int * 'a) list) list
+
+  val make-frame-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> (((int * int) list) list * ((int * int) list) list) -> graphics list
+  val make-lattice-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> (((int * int) list) list * ((int * int) list) list) -> graphics list
+
+
+  val combine : (((int * puzzle-contents) list) list) list -> (puzzle list) list -> (puzzle list) list
+
+  val puzzle-sieve : int -> int -> puzzle -> puzzle list
+  val draw-puzzle : length -> length -> int -> int -> puzzle-contents -> graphics
+  val make-cell-graphics : length -> length -> ((puzzle list) list) list -> graphics list
+
+
+  val draw-board : length -> length -> length -> graphics list -> graphics list -> inline-boxes
+
+end = struct
+
+
+let abs n =
+  if n < 0 then
+    n * (-1)
+  else
+    n
+
+
+let add-cell (x, y) puzzle-content lst =
+  let-rec sub f n lst =
+    if n <= 0 then
+      match lst with
+      | [] -> []
+      | x :: xs -> (f x) :: xs
+    else
+      match lst with
+      | [] -> []
+      | x :: xs -> x :: sub f (n - 1) xs
+  in
+  let f puzzle =
+    match puzzle with
+    | NullPuzzle -> NullPuzzle
+    | NormalPuzzle(lst) -> NormalPuzzle(List.append puzzle-content lst)
+  in
+    sub (fun lst -> sub f x lst) y lst
+
+
+
+let-rec take i lst =
+  match lst with
+  | []      -> []
+  | x :: xs -> (
+      if i < 0 then
+        []
+      else
+        x :: (take (i - 1) xs)
+  )
+
+
+let-rec takewhile f lst =
+  match lst with
+  | []      -> []
+  | x :: xs -> (
+      if f x then
+        x :: takewhile f xs
+      else
+        takewhile f xs
+  )
+
+let head lst =
+  match lst with
+  | []        -> None
+  | head :: _ -> Some(head)
+
+
+let tail lst =
+  match lst with
+  | []        -> None
+  | _ :: tail -> Some(tail)
+
+
+let-rec max f lst =
+  match lst with
+  | []           -> None
+  | x :: []      -> Some(x)
+  | x :: y :: zs -> (
+    if (f x y) < 0 then
+      max f (y :: zs)
+    else
+      max f (x :: zs)
+  )
+
+
+let comparison-num n m =
+  if n < m then
+      -1
+    else
+      if n > m then
+        1
+      else
+        0
+
+
+let-rec repeat n initial =
+  if n == 0 then
+    []
+  else
+    initial :: repeat (n - 1) initial
+
+
+let-rec show-opt lst =
+  match lst with
+  | []      -> []
+  | x :: xs -> (
+    match x with
+    | Some(x) -> x :: show-opt xs
+    | None    -> show-opt xs
+  )
+
+
+let h2v puzzle-list-list =
+  let get-size-option n-op =
+    match n-op with
+    | None    -> 0
+    | Some(n) -> n
+  in
+  let get-puzzle p-op =
+    match p-op with
+    | None -> NullPuzzle
+    | Some(p) -> p
+  in
+  let get-puzzle-lst lst-op =
+    match lst-op with
+    | None -> []
+    | Some(l) -> l
+  in
+  let list-size =
+    List.map List.length puzzle-list-list |> max comparison-num |> get-size-option
+  in
+  let-rec h2v-sub lst n =
+    if n == 0 then
+      lst
+    else
+      List.map (fun lst -> head lst |> get-puzzle) lst :: h2v-sub (
+          List.map (fun lst -> tail lst |> get-puzzle-lst) lst
+        ) (n - 1)
+  in
+    h2v-sub puzzle-list-list list-size |> take (list-size - 1)
+
+
+
+let add-frame-line n puzzle-lst =
+  let-rec add-line-sub n m lst =
+    match lst with
+    | [] -> []
+    | (NullPuzzle) :: [] -> []
+    | (NormalPuzzle(p)) :: [] -> (m, n) :: []
+    | (NullPuzzle) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
+    | (NullPuzzle) :: (NormalPuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+    | (NormalPuzzle(p1)) :: (NullPuzzle) :: xs -> (m, n) :: add-line-sub n (m + 1) (NullPuzzle :: xs)
+    | (NormalPuzzle(p1)) :: (NormalPuzzle(p2)) :: xs -> add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+  in
+    add-line-sub n 0 puzzle-lst
+
+
+
+let add-lattice-line n puzzle-lst =
+  let-rec add-line-sub n m lst =
+    match lst with
+    | [] -> []
+    | (NullPuzzle) :: [] -> []
+    | (NormalPuzzle(p)) :: [] -> []
+    | (NullPuzzle) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
+    | (NullPuzzle) :: (NormalPuzzle(p2)) :: xs -> add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+    | (NormalPuzzle(p1)) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
+    | (NormalPuzzle(p1)) :: (NormalPuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+  in
+    add-line-sub n 0 puzzle-lst
+
+
+let make-line-list f lst =
+  let add-null lst =
+    (NullPuzzle) :: lst
+  in
+  let y-size = List.length lst in
+  let-mutable puzzle-c <- y-size + 1 in
+  let numbering x =
+    let () = puzzle-c <- !puzzle-c - 1 in
+    let n = !puzzle-c in
+      (n, x)
+  in
+  let () = puzzle-c <- y-size + 1 in
+  let h-frame-list =
+    let main-list =
+      List.map add-null lst |> List.map numbering
+    in
+      List.map (fun (n, lst) -> f n lst) main-list
+  in
+  let () = puzzle-c <- y-size + 1 in
+  let correction (y1, x1) =
+    let y2 = y-size - y1 in
+    let x2 = y-size - x1 in
+      (x2, y2)
+  in
+  let v-frame-list =
+    let v-list = h2v lst in
+    let main-list =
+      List.map add-null v-list |> List.map numbering
+    in
+      List.map (fun (n, lst) -> f n lst) main-list |> List.map (List.map correction)
+  in
+    (h-frame-list, v-frame-list)
+
+
+
+
+let make-frame-list lst = make-line-list add-frame-line lst
+
+
+let make-lattice-list lst = make-line-list add-lattice-line lst
+
+
+let make-board lst =
+  let make-board-sub (n, m) =
+    List.append (repeat n NullPuzzle) (repeat m (NormalPuzzle[]))
+  in
+    List.map make-board-sub lst
+
+
+let make-rectangle-board x y =
+  repeat y (repeat x (NormalPuzzle[]))
+
+
+%(puzzle list) list を((int * int * puzzle) list) listに変換
+
+let coordinate-list-list puzzle-list-list =
+  let y-size =
+    List.length puzzle-list-list
+  in
+  let-mutable x-num <- 0 in
+  let-mutable y-num <- y-size + 1 in
+  let numbering-x lst =
+    let numbering-x-sub p =
+      let () = x-num <- !x-num + 1 in
+      let x = !x-num in
+        (x, p)
+    in
+    let () = x-num <- 0 in
+      List.map numbering-x-sub lst
+  in
+  let numbering-y lst =
+    let () = y-num <- !y-num - 1 in
+    let y = !y-num in
+    let numbering-y-sub (x, p) =
+      let main = (x, y, p) in
+        main
+    in
+      List.map numbering-y-sub lst
+  in
+  let x-list =
+    List.map numbering-x puzzle-list-list
+  in
+  let x-y-list =
+    List.map numbering-y x-list
+  in
+    x-y-list
+
+
+
+
+
+let make-frame-graphics w h make-graphics1 make-graphics2 (hlst, vlst) =
+  let f1 lst = List.map (List.map (make-graphics1 w h )) lst |> List.concat |> List.concat in
+  let f2 lst = List.map (List.map (make-graphics2 w h )) lst |> List.concat |> List.concat in
+  let main-hlst = f1 hlst in
+  let main-vlst = f2 vlst in
+    List.append main-hlst main-vlst
+
+
+let make-lattice-graphics w h make-graphics1 make-graphics2 (hlst, vlst) =
+  let f1 lst = List.map (List.map (make-graphics1 w h)) lst |> List.concat |> List.concat in
+  let f2 lst = List.map (List.map (make-graphics2 w h)) lst |> List.concat |> List.concat in
+  let main-hlst = f1 hlst in
+  let main-vlst = f2 vlst in
+    List.append main-hlst main-vlst
+
+
+
+let combine lst1 lst2 =
+  let combine-sub-sub contents puzzle =
+    match puzzle with
+    | NullPuzzle -> NullPuzzle
+    | NormalPuzzle(lst) -> NormalPuzzle(List.append contents lst)
+  in
+  let-rec combine-sub lst1 lst2 =
+    match (lst1, lst2) with
+    | ([], []) -> []
+    | (x1 :: xs1, x2 :: xs2) -> (x1, x2) :: combine-sub xs1 xs2
+    | (x1 :: xs1, []) -> []
+    | ([], x2 :: xs2) -> ([], x2) :: combine-sub [] xs2
+  in
+  let tuple-list =
+    List.map (fun (lst1, lst2) -> combine-sub lst1 lst2) (combine-sub lst1 lst2)
+  in
+  let main-list =
+    List.map (List.map (fun (c, p) -> combine-sub-sub c p)) tuple-list
+  in
+    main-list
+
+
+% n が最低値 m が最高値 l は現在値
+let puzzle-sieve n m puzzle =
+  let-rec sieve l lst =
+    if l > m then
+      []
+    else
+      takewhile (fun (n, p) -> n == l) lst :: sieve (l + 1) lst
+  in
+  let to-puzzle lst =
+    NormalPuzzle(lst)
+  in
+    match puzzle with
+    | NullPuzzle -> repeat (abs(m) + abs(n)) NullPuzzle
+    | NormalPuzzle(lst) -> sieve n lst |> List.map to-puzzle
+
+
+let correction-draw-text (x, y) ib =
+  let (w, h, d) = get-natural-metrics ib in
+  let x-c = x -' (w *' 0.5) in
+  let y-c =
+    y -' (h +' d) *' 0.5
+  in
+    draw-text (x-c, y-c) ib
+
+
+% type puzzle-contents =
+%   | Object of float * float * inline-boxes
+%   | Line   of (float * float) * (int * int * float * float)
+%   | Other  of length -> length -> int -> int -> graphics
+let draw-puzzle cell-w cell-h x y content =
+  let w-p fl = cell-w *' (float (x - 1) +. fl) in
+  let h-p fl = cell-w *' (float (y - 1) +. fl) in
+  let draw-line f po1 po2 =
+    let path = Gr.line po1 po2 in
+      f path
+  in
+  match content with
+  | Object (x1, y1, ib) -> correction-draw-text (w-p x1, h-p y1) ib
+  | Line (f, (x1, y1), (x-p, y-p, x2, y2)) -> draw-line f (w-p x1, h-p y1) (cell-w *' (float (x - 1 + x-p) +. x2), cell-h *' (float (y - 1 + y-p) +. y2))
+  | Other (f) -> f cell-w cell-h x y
+
+
+
+let make-cell-graphics cell-w cell-h lst =
+  let coordinate-list = coordinate-list-list lst in
+  let draw-cell-puzzle cell-w cell-h x y puzzle =
+    let draw-cell-puzzle-sub (_, p) =
+      draw-puzzle cell-w cell-h x y p
+    in
+      match puzzle with
+      | NullPuzzle -> []
+      | NormalPuzzle(lst) -> List.map draw-cell-puzzle-sub lst
+  in
+  let main-lst =
+    List.map (List.map (fun (x, y, lst) -> List.map (draw-cell-puzzle cell-w cell-h x y) lst)) coordinate-list
+  in
+    main-lst |> List.concat |> List.concat |> List.concat
+
+
+let draw-board w h d lst1 lst2 =
+  let f (x, y) gr = shift-graphics (x, y) gr in
+  let lst = List.append lst1 lst2 in
+  let main-list (x, y) = List.map (f (x, y)) lst in
+    inline-graphics w h d main-list
+
+end
+
+
+module PuzzleCellDesign :sig
+
+  val empty : length -> length -> (int * int) -> graphics list
+  val dots-h : length -> color -> length -> length -> (int * int) -> graphics list
+  val dots-v : length -> color -> length -> length -> (int * int) -> graphics list
+  val stroke-line-h : length -> color -> length -> length -> (int * int) -> graphics list
+  val stroke-line-v : length -> color -> length -> length -> (int * int) -> graphics list
+  val dashed-line-h : length -> (length * length * length) -> color -> length -> length -> (int * int) -> graphics list
+  val dashed-line-v : length -> (length * length * length) -> color -> length -> length -> (int * int) -> graphics list
+
+end = struct
+
+
+  let empty _ _ _ = []
+
+
+  let dots-h r c w h (x, y) =
+    let path =
+      [
+        Gr.circle (w *' (float x), h *' (float (y - 1))) r;
+        Gr.circle (w *' (float x), h *' (float y)) r;
+      ]
+    in
+    let gr-lst = List.map (fill c) path in
+      gr-lst
+
+
+  let dots-v r c w h (x, y) =
+      let path =
+      [
+        Gr.circle (w *' (float (x + 1)), h *' (float y)) r;
+        Gr.circle (w *' (float x), h *' (float y)) r;
+      ]
+    in
+    let gr-lst = List.map (fill c) path in
+      gr-lst
+
+
+  let stroke-line-h t c w h (x, y) =
+    let fx1 = float x in
+    let fy1 = float y in
+    let fx2 = float x in
+    let fy2 = float (y - 1) in
+    let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+      [stroke t c p]
+
+
+  let stroke-line-v t c w h (x, y) =
+    let fx1 = float x in
+    let fy1 = float y in
+    let fx2 = float (x + 1) in
+    let fy2 = float y in
+    let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+      [stroke t c p]
+
+
+  let dashed-line-h t (len1, len2, len3) c w h (x, y) =
+    let fx1 = float x in
+    let fy1 = float y in
+    let fx2 = float x in
+    let fy2 = float (y - 1) in
+    let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+      [dashed-stroke t (len1, len2, len3) c p]
+
+
+  let dashed-line-v t (len1, len2, len3) c w h (x, y) =
+    let fx1 = float x in
+    let fy1 = float y in
+    let fx2 = float (x + 1) in
+    let fy2 = float y in
+    let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+      [dashed-stroke t (len1, len2, len3) c p]
+end

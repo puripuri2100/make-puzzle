@@ -1,0 +1,343 @@
+@require: gr
+@require: color
+@import: puzzle
+
+module Yajirin : sig
+  direct \yajirin : [int; int; (inline-text list) list; (int * int) list; (int * int) list] inline-cmd
+  direct \arrowUp : [inline-text] inline-cmd
+  direct \arrowDown : [inline-text] inline-cmd
+  direct \arrowLeft : [inline-text] inline-cmd
+  direct \arrowRight : [inline-text] inline-cmd
+
+  direct \arrowUpLeft : [inline-text] inline-cmd
+  direct \arrowUpRight : [inline-text] inline-cmd
+  direct \arrowDownLeft : [inline-text] inline-cmd
+  direct \arrowDownRight : [inline-text] inline-cmd
+
+end = struct
+
+let head lst =
+  match lst with
+  | []        -> None
+  | head :: _ -> Some(head)
+
+let cell-w = 8mm
+let cell-h = 8mm
+
+let thick-t = 1.5pt
+let thin-t = 0.5pt
+let c = Color.black
+let line-c = RGB(0., 1., 0.)
+
+let draw-thick-h = PuzzleCellDesign.stroke-line-h thick-t c
+
+let draw-thick-v = PuzzleCellDesign.stroke-line-v thick-t c
+
+let draw-thin-h = PuzzleCellDesign.stroke-line-h thin-t c
+
+let draw-thin-v = PuzzleCellDesign.stroke-line-v thin-t c
+
+
+let make-board w h d lst1 lst2 lst3 =
+  let frame-lst = Puzzle.make-frame-list lst1 in
+  let lattice-lst = Puzzle.make-lattice-list lst1 in
+  let frame-graphics-lst =
+    Puzzle.make-frame-graphics cell-w cell-h draw-thick-h draw-thick-v frame-lst
+  in
+  let lattice-graphics-lst =
+    Puzzle.make-lattice-graphics cell-w cell-h draw-thin-h draw-thin-v lattice-lst
+  in
+  let cell-lst = Puzzle.make-cell-graphics cell-w cell-h lst2 in
+  let main-list = List.append frame-graphics-lst lattice-graphics-lst in
+    Puzzle.draw-board w h d main-list cell-lst
+
+
+let-inline ctx \yajirin x y it-lst-lst line-lst nuri =
+  let w = cell-w *' (float x) in
+  let h = cell-h *' (float y) in
+  let d = 0mm in
+  let cell-lst = Puzzle.make-rectangle-board x y in
+  let strokef path =
+    let t = 0.5pt in
+    let c = Color.black in
+      stroke t c path
+  in
+  let board =
+    let to-ib it =
+      let ctx-ib =
+        ctx |> set-text-color Color.black
+      in
+        read-inline ctx-ib it
+    in
+    let to-puzzle i =
+      let ib = to-ib i in
+        [(1, Object (0.5, 0.5, ib))]
+    in
+    let ib-lst-lst =
+      List.map (List.map to-puzzle) it-lst-lst
+    in
+    let nuri-list =
+      let ib =
+        let c = Color.black in
+        let gr =
+          Gr.rectangle (0pt, 0pt) (cell-w, cell-h) |> fill c
+        in
+          inline-graphics cell-w cell-h 0mm (fun p -> [shift-graphics p gr])
+      in
+        List.map (fun (x-sub, y-sub) -> ((x-sub - 1, y - y-sub), [(2, Object (0.5, 0.5, ib))])) nuri
+    in
+    let line-fun cell-w cell-h x y =
+      let strokef p = stroke thick-t line-c p in
+      let f (x, y) =
+        let x1 = (float x) -. 0.5 in
+        let y1 = (float y) -. 0.5 in
+        let x2 = cell-w *' x1 in
+        let y2 = cell-h *' y1 in
+          (x2, y2)
+      in
+      let head-cell = head line-lst in
+      let sub-lst = List.map f line-lst in
+        match head-cell with
+        | None -> Gr.line (0pt, 0pt) (0pt, 0pt) |> stroke 0pt c
+        | Some(p) -> Gr.poly-line (f p) sub-lst |> strokef
+    in
+    let sub-lst-lst =
+      Puzzle.combine ib-lst-lst cell-lst
+    in
+    let main-lst-lst =
+      let f puzzle ((x, y), contents) =
+        Puzzle.add-cell (x, y) contents puzzle
+      in
+        List.fold-left f sub-lst-lst nuri-list
+          |> Puzzle.add-cell (1, 1) [(1, Other(line-fun))]
+    in
+      List.map (List.map (Puzzle.puzzle-sieve 1 2)) main-lst-lst
+  in
+    make-board w h d cell-lst board []
+
+
+let make-ctx-arrow ctx =
+  ctx |> set-font-size 15pt
+
+
+let-inline ctx \arrowUp it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x = cell-w *' 0.8 in
+  let arrow-y1 = cell-h *' 0.85 in
+  let arrow-y2 = cell-h *' 0.15 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.45) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x, arrow-y2) (arrow-x, arrow-y1)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowDown it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x = cell-w *' 0.8 in
+  let arrow-y1 = cell-h *' 0.85 in
+  let arrow-y2 = cell-h *' 0.15 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.45) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x, arrow-y1) (arrow-x, arrow-y2)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowLeft it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.85 in
+  let arrow-x2 = cell-w *' 0.15 in
+  let arrow-y = cell-h *' 0.8 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.5) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.45) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x1, arrow-y) (arrow-x2, arrow-y)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowRight it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.85 in
+  let arrow-x2 = cell-w *' 0.15 in
+  let arrow-y = cell-h *' 0.8 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.5) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.45) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x2, arrow-y) (arrow-x1, arrow-y)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+% ========================================================================
+
+let-inline ctx \arrowUpLeft it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.6 in
+  let arrow-x2 = cell-w *' 0.1 in
+  let arrow-y1 = cell-h *' 0.15 in
+  let arrow-y2 = cell-h *' 0.85 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.65) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x1, arrow-y1) (arrow-x2, arrow-y2)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowUpRight it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.4 in
+  let arrow-x2 = cell-w *' 0.9 in
+  let arrow-y1 = cell-h *' 0.15 in
+  let arrow-y2 = cell-h *' 0.85 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.35) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x1, arrow-y1) (arrow-x2, arrow-y2)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowDownLeft it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.6 in
+  let arrow-x2 = cell-w *' 0.1 in
+  let arrow-y1 = cell-h *' 0.85 in
+  let arrow-y2 = cell-h *' 0.15 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.65) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x1, arrow-y1) (arrow-x2, arrow-y2)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+
+let-inline ctx \arrowDownRight it =
+  let ctx-arrow = make-ctx-arrow ctx in
+  let ib = read-inline ctx-arrow it in
+  let arrow-size = cell-w *' 0.3 in
+  let arrow-t = cell-h *' 0.25 in
+  let arrow-len = cell-w *' 0.1 in
+  let arrow-x1 = cell-w *' 0.4 in
+  let arrow-x2 = cell-w *' 0.9 in
+  let arrow-y1 = cell-h *' 0.85 in
+  let arrow-y2 = cell-h *' 0.15 in
+  let graphics-ib =
+    let (w, h, d) = get-natural-metrics ib in
+    let x-c = (cell-w *' 0.35) -' (w *' 0.5) in
+    let y-c =
+      (cell-h *' 0.5) -' ((h +' d) *' 0.5)
+    in
+      draw-text (x-c, y-c) ib :: []
+  in
+  let graphics-arrow =
+    let t = 1pt in
+    let c = Color.black in
+      Gr.arrow t c arrow-size arrow-t  arrow-len (arrow-x1, arrow-y1) (arrow-x2, arrow-y2)
+  in
+  let gr-list = List.append graphics-arrow graphics-ib in
+  let f p gr = shift-graphics p gr in
+    inline-graphics cell-w cell-h 0mm (fun p -> List.map (f p) gr-list)
+
+end

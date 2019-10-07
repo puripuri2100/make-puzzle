@@ -1,0 +1,171 @@
+@require: stdjabook
+@import: ../puzzle
+
+@import: ../debug-show-value
+
+let int-tuple (n, m) =
+  `(` ^ arabic n ^ `, `# ^ arabic m ^ `)`
+
+
+let show-tupple-puzzle f (p1, p2) =
+  `(` ^ f p1 ^ `, `# ^ f p2 ^ `)`
+
+let show-int-int-puzzle f (x, y, p) =
+  `(` ^ arabic x ^ `, `# ^ arabic y ^ `, `# ^ f p ^ `)`
+
+
+let show-puzzle p =
+  match p with
+  | NullPuzzle -> `NullPuzzle`
+  | NormalPuzzle(p) -> `NormalPuzzle()`
+
+let test-puzzle-sub =
+  [
+    NullPuzzle;
+    NormalPuzzle([]);
+    NullPuzzle;
+    NormalPuzzle([]);
+    NormalPuzzle([]);
+  ]
+
+let test-puzzle =
+%  Puzzle.make-board [(0, 5); (1, 4); (0, 5); (0, 4); (0, 5)]
+  [
+    [NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+    [NullPuzzle;NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+    [NormalPuzzle([]);NormalPuzzle([]);NullPuzzle;NormalPuzzle([]);NormalPuzzle([])];
+    [NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+    [NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+  ]
+
+
+let puzzle-cell-test1 =
+  (1, (Line(stroke 0.5pt Color.red, (0.5, 0.5), (1, 0, 0.5, 0.5))))
+
+let puzzle-cell-test2 =
+  (1, (Line(stroke 0.5pt Color.blue, (0.5, 0.5), (2, 1, 0.5, 0.5))))
+
+let puzzle-cell-ib1 =
+  [
+    {|1|2|3|4|};
+    {|1|2|3|P|p|6|};
+    {|1|2|3|4|5|};
+    {|1|2|3|4|5|};
+    {|1|2|3|4|5|};
+  ]
+
+
+
+let thick-line-h w h (x, y) =
+  let t = 1.2pt in
+  let c = Color.black in
+  let fx1 = float x in
+  let fy1 = float y in
+  let fx2 = float x in
+  let fy2 = float (y - 1) in
+  let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+    [stroke t c p]
+
+let thick-line-v w h (x, y) =
+  let t = 1.2pt in
+  let c = Color.black in
+  let fx1 = float x in
+  let fy1 = float y in
+  let fx2 = float (x + 1) in
+  let fy2 = float y in
+  let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+    [stroke t c p]
+
+
+let thin-line-h w h (x, y) =
+  let t = 0.5pt in
+  let c = Color.black in
+  let fx1 = float x in
+  let fy1 = float y in
+  let fx2 = float x in
+  let fy2 = float (y - 1) in
+  let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+    [stroke t c p]
+%    dashed-stroke t (1.5pt, 1pt, 0.2pt) c p
+
+
+let thin-line-v w h (x, y) =
+  let t = 0.5pt in
+  let c = Color.black in
+  let fx1 = float x in
+  let fy1 = float y in
+  let fx2 = float (x + 1) in
+  let fy2 = float y in
+  let p = Gr.line (w *' fx1, h *' fy1) (w *' fx2, h *' fy2) in
+    [stroke t c p]
+
+
+let make-board w h d lst1 lst2 =
+  let cell-w = 10mm in
+  let cell-h = 10mm in
+  let frame-lst = Puzzle.make-frame-list lst1 in
+  let lattice-lst = Puzzle.make-lattice-list lst1 in
+  let frame-graphics-lst = Puzzle.make-frame-graphics cell-w cell-h thick-line-h thick-line-v frame-lst in
+  let lattice-graphics-lst = Puzzle.make-lattice-graphics cell-w cell-h thin-line-h thin-line-v lattice-lst in
+  let cell-lst = Puzzle.make-cell-graphics cell-w cell-h lst2 in
+  let main-list = List.append frame-graphics-lst lattice-graphics-lst in
+    Puzzle.draw-board w h d main-list cell-lst
+
+let-inline ctx \make-board lst1 lst2 =
+  let lst2-2 =
+    List.map (List.map (fun it -> [(3, Object(0.5, 0.5, read-inline ctx it))])) lst2
+  in
+    make-board 50mm 50mm 0mm lst1 ( (List.map (List.map (Puzzle.puzzle-sieve 0 10)) (Puzzle.combine lst2-2 lst1)))
+
+
+let-block ctx +clear-page = clear-page
+
+in
+
+document (|
+  title = {パズル描画};
+  author = {puripuri2100};
+  show-title = true;
+  show-toc = false;
+|) '<
+%  +p(Puzzle.add-frame-line 1 test-puzzle-sub |> DebugShowValue.show-list int-tuple |> embed-string);
+  +p(Puzzle.make-frame-list test-puzzle |> show-tupple-puzzle (fun lst -> lst |> List.map (DebugShowValue.show-list int-tuple) |> DebugShowValue.show-list DebugShowValue.show-string) |> embed-string);
+
+  +p(test-puzzle |> List.map (DebugShowValue.show-list show-puzzle) |> DebugShowValue.show-list DebugShowValue.show-string |> embed-string);
+
+  +p(Puzzle.h2v test-puzzle |> List.map (DebugShowValue.show-list show-puzzle) |> DebugShowValue.show-list DebugShowValue.show-string |> embed-string);
+
+  +p(Puzzle.coordinate-list-list test-puzzle |>
+    List.map (DebugShowValue.show-list (show-int-int-puzzle show-puzzle)) |>
+      DebugShowValue.show-list DebugShowValue.show-string |> embed-string);
+
+  +p{\make-board(test-puzzle)([]);}
+
+  +clear-page;
+
+  +p{
+      \make-board(Puzzle.make-rectangle-board (5) (5))(puzzle-cell-ib1);
+      　　
+      \make-board([
+        [NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+        [NormalPuzzle([]);NormalPuzzle([puzzle-cell-test1]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+        [NormalPuzzle([]);NormalPuzzle([]);NullPuzzle      ;NullPuzzle      ;NormalPuzzle([]);NormalPuzzle([])];
+        [NormalPuzzle([]);NormalPuzzle([]);NullPuzzle      ;NullPuzzle      ;NormalPuzzle([]);NormalPuzzle([])];
+        [NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+        [NormalPuzzle([puzzle-cell-test1;puzzle-cell-test2]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([]);NormalPuzzle([])];
+      ])(puzzle-cell-ib1);
+    }
+    +p{\make-board(Puzzle.make-board [(2, 1); (1, 3); (0, 5); (1, 3); (2, 1)])([]);
+      　　
+      \make-board(Puzzle.make-rectangle-board (10) (5))([]);
+    }
+    +p{\make-board(Puzzle.make-board [(0, 5); (0, 5); (0, 0); (0, 5); (0, 5)])([]);}
+
+    +clear-page;
+    +p{
+      \make-board(Puzzle.make-rectangle-board (50) (50))([]);
+    }
+    +p{
+      \make-board(Puzzle.make-rectangle-board (1) (2503))([]);
+    }
+>
