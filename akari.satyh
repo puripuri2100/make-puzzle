@@ -97,7 +97,7 @@ let-inline ctx \akari x y nuri it-lst-lst a-num-lst =
       in
         List.fold-left f sub-lst-lst a-list
     in
-      List.map (List.map (Puzzle.puzzle-sieve 1 3)) main-lst-lst
+      Puzzle.puzzle-sieve-on-board 1 3 main-lst-lst
   in
     make-board w h d cell-lst board []
 

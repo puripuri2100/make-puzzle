@@ -20,32 +20,42 @@ type puzzle =
 
 module Puzzle : sig
 
-  val add-cell : (int * int) -> (int * puzzle-contents) list -> (puzzle list) list -> (puzzle list) list
-  val h2v : (puzzle list) list -> (puzzle list) list
+  type 'a board
+
+  val to-list-list : 'a board -> ('a list) list
+  val to-board : ('a list) list -> 'a board
+
+  val add-cell : (int * int) -> (int * puzzle-contents) list -> puzzle board -> puzzle board
+  val h2v : puzzle board -> puzzle board
   val add-frame-line : int -> puzzle list -> (int * int) list
   val add-lattice-line : int -> puzzle list -> (int * int) list
-  val make-line-list : (int -> puzzle list -> (int * int) list) -> (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
-  val make-frame-list : (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
-  val make-lattice-list : (puzzle list) list -> (((int * int) list) list * ((int * int) list) list)
-  val make-board : (int * int) list -> (puzzle list) list
-  val make-rectangle-board : int -> int -> (puzzle list) list
-  val coordinate-list-list : ('a list) list -> ((int * int * 'a) list) list
+  val make-line-list : (int -> puzzle list -> (int * int) list) -> puzzle board -> ((int * int) board * (int * int) board)
+  val make-frame-list : puzzle board -> ((int * int) board * (int * int) board)
+  val make-lattice-list : puzzle board -> ((int * int) board * (int * int) board)
+  val make-board : (int * int) list -> puzzle board
+  val make-rectangle-board : int -> int -> puzzle board
+  val coordinate-list-list : 'a board -> (int * int * 'a) board
 
-  val make-frame-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> (((int * int) list) list * ((int * int) list) list) -> graphics list
-  val make-lattice-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> (((int * int) list) list * ((int * int) list) list) -> graphics list
+  val make-frame-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> ((int * int) board * (int * int) board) -> graphics list
+  val make-lattice-graphics : length -> length -> (length -> length -> (int * int) -> graphics list) -> (length -> length -> (int * int) -> graphics list) -> ((int * int) board * (int * int) board) -> graphics list
 
 
-  val combine : (((int * puzzle-contents) list) list) list -> (puzzle list) list -> (puzzle list) list
+  val combine : (((int * puzzle-contents) list) list) list -> puzzle board -> puzzle board
 
   val puzzle-sieve : int -> int -> puzzle -> puzzle list
+  val puzzle-sieve-on-board : int -> int -> puzzle board -> (puzzle list) board
   val draw-puzzle : length -> length -> int -> int -> puzzle-contents -> graphics
-  val make-cell-graphics : length -> length -> ((puzzle list) list) list -> graphics list
+  val make-cell-graphics : length -> length -> (puzzle list) board -> graphics list
 
 
   val draw-board : length -> length -> length -> graphics list -> graphics list -> inline-boxes
 
 end = struct
 
+type 'a board = ('a list) list
+
+let to-list-list b = b
+let to-board ll = ll
 
 let abs n =
   if n < 0 then
@@ -350,6 +360,10 @@ let puzzle-sieve n m puzzle =
     match puzzle with
     | NullPuzzle -> repeat (abs(m) + abs(n)) NullPuzzle
     | NormalPuzzle(lst) -> sieve n lst |> List.map to-puzzle
+
+
+let puzzle-sieve-on-board n m lst-lst =
+  List.map (List.map (puzzle-sieve n m)) lst-lst
 
 
 let correction-draw-text (x, y) ib =

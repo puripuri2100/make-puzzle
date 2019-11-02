@@ -111,7 +111,7 @@ let-inline ctx \yajirin x y it-lst-lst line-lst nuri =
         List.fold-left f sub-lst-lst nuri-list
           |> Puzzle.add-cell (1, 1) [(1, Other(line-fun))]
     in
-      List.map (List.map (Puzzle.puzzle-sieve 1 2)) main-lst-lst
+      Puzzle.puzzle-sieve-on-board 1 2 main-lst-lst
   in
     make-board w h d cell-lst board []
 

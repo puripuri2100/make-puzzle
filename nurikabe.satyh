@@ -77,7 +77,7 @@ let-inline ctx \nurikabe x y it-lst-lst nuri =
     let main-lst-lst =
       Puzzle.combine ib-lst-lst cell-lst |> Puzzle.combine nuri-lst
     in
-      List.map (List.map (Puzzle.puzzle-sieve 0 2)) main-lst-lst
+      Puzzle.puzzle-sieve-on-board 0 2 main-lst-lst
   in
     make-board w h d cell-lst q-board []
 

@@ -70,7 +70,7 @@ let-inline ctx \slither x y it-lst-lst line =
     let main-lst-lst =
       Puzzle.combine ib-lst-lst cell-lst |> Puzzle.combine line-lst
     in
-      List.map (List.map (Puzzle.puzzle-sieve 0 2)) main-lst-lst
+      Puzzle.puzzle-sieve-on-board 0 2 main-lst-lst
   in
     make-board w h d cell-lst q-board []
 
