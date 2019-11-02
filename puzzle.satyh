@@ -15,7 +15,8 @@ type puzzle-contents =
   | Other  of length -> length -> int -> int -> graphics
 
 type puzzle =
-  | NormalPuzzle of (int * puzzle-contents) list
+  | InSidePuzzle of (int * puzzle-contents) list
+  | OutSidePuzzle of (int * puzzle-contents) list
   | NullPuzzle
 
 module Puzzle : sig
@@ -78,7 +79,8 @@ let add-cell (x, y) puzzle-content lst =
   let f puzzle =
     match puzzle with
     | NullPuzzle -> NullPuzzle
-    | NormalPuzzle(lst) -> NormalPuzzle(List.append puzzle-content lst)
+    | InSidePuzzle(lst) -> InSidePuzzle(List.append puzzle-content lst)
+    | OutSidePuzzle(lst) -> OutSidePuzzle(List.append puzzle-content lst)
   in
     sub (fun lst -> sub f x lst) y lst
 
@@ -192,11 +194,13 @@ let add-frame-line n puzzle-lst =
     match lst with
     | [] -> []
     | (NullPuzzle) :: [] -> []
-    | (NormalPuzzle(p)) :: [] -> (m, n) :: []
-    | (NullPuzzle) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
-    | (NullPuzzle) :: (NormalPuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
-    | (NormalPuzzle(p1)) :: (NullPuzzle) :: xs -> (m, n) :: add-line-sub n (m + 1) (NullPuzzle :: xs)
-    | (NormalPuzzle(p1)) :: (NormalPuzzle(p2)) :: xs -> add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+    | (OutSidePuzzle(p)) :: [] -> []
+    | (InSidePuzzle(p)) :: [] -> (m, n) :: []
+    | (NullPuzzle) :: (InSidePuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (InSidePuzzle(p2) :: xs)
+    | (OutSidePuzzle(p)) :: (InSidePuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (InSidePuzzle(p2) :: xs)
+    | (InSidePuzzle(p1)) :: (NullPuzzle) :: xs -> (m, n) :: add-line-sub n (m + 1) (NullPuzzle :: xs)
+    | (InSidePuzzle(p1)) :: (OutSidePuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (OutSidePuzzle(p2) :: xs)
+    | _ :: xs -> add-line-sub n (m + 1) xs
   in
     add-line-sub n 0 puzzle-lst
 
@@ -207,11 +211,10 @@ let add-lattice-line n puzzle-lst =
     match lst with
     | [] -> []
     | (NullPuzzle) :: [] -> []
-    | (NormalPuzzle(p)) :: [] -> []
-    | (NullPuzzle) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
-    | (NullPuzzle) :: (NormalPuzzle(p2)) :: xs -> add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
-    | (NormalPuzzle(p1)) :: (NullPuzzle) :: xs -> add-line-sub n (m + 1) (NullPuzzle :: xs)
-    | (NormalPuzzle(p1)) :: (NormalPuzzle(p2)) :: xs -> (m, n) :: add-line-sub n (m + 1) (NormalPuzzle(p2) :: xs)
+    | (OutSidePuzzle(p)) :: [] -> []
+    | (InSidePuzzle(p)) :: [] -> []
+    | (InSidePuzzle(p1)) :: (InSidePuzzle(p2)) :: xss -> (m, n) :: add-line-sub n (m + 1) (InSidePuzzle(p2) :: xss)
+    | _ :: xs -> add-line-sub n (m + 1) xs
   in
     add-line-sub n 0 puzzle-lst
 
@@ -260,13 +263,13 @@ let make-lattice-list lst = make-line-list add-lattice-line lst
 
 let make-board lst =
   let make-board-sub (n, m) =
-    List.append (repeat n NullPuzzle) (repeat m (NormalPuzzle[]))
+    List.append (repeat n NullPuzzle) (repeat m (InSidePuzzle[]))
   in
     List.map make-board-sub lst
 
 
 let make-rectangle-board x y =
-  repeat y (repeat x (NormalPuzzle[]))
+  repeat y (repeat x (InSidePuzzle[]))
 
 
 %(puzzle list) list を((int * int * puzzle) list) listに変換
@@ -328,7 +331,8 @@ let combine lst1 lst2 =
   let combine-sub-sub contents puzzle =
     match puzzle with
     | NullPuzzle -> NullPuzzle
-    | NormalPuzzle(lst) -> NormalPuzzle(List.append contents lst)
+    | InSidePuzzle(lst) -> InSidePuzzle(List.append contents lst)
+    | OutSidePuzzle(lst) -> OutSidePuzzle(List.append contents lst)
   in
   let-rec combine-sub lst1 lst2 =
     match (lst1, lst2) with
@@ -354,12 +358,16 @@ let puzzle-sieve n m puzzle =
     else
       takewhile (fun (n, p) -> n == l) lst :: sieve (l + 1) lst
   in
-  let to-puzzle lst =
-    NormalPuzzle(lst)
+  let to-puzzle-inside lst =
+    InSidePuzzle(lst)
+  in
+  let to-puzzle-outside lst =
+    OutSidePuzzle(lst)
   in
     match puzzle with
     | NullPuzzle -> repeat (abs(m) + abs(n)) NullPuzzle
-    | NormalPuzzle(lst) -> sieve n lst |> List.map to-puzzle
+    | InSidePuzzle(lst) -> sieve n lst |> List.map to-puzzle-inside
+    | OutSidePuzzle(lst) -> sieve n lst |> List.map to-puzzle-outside
 
 
 let puzzle-sieve-on-board n m lst-lst =
@@ -401,7 +409,8 @@ let make-cell-graphics cell-w cell-h lst =
     in
       match puzzle with
       | NullPuzzle -> []
-      | NormalPuzzle(lst) -> List.map draw-cell-puzzle-sub lst
+      | InSidePuzzle(lst) -> List.map draw-cell-puzzle-sub lst
+      | OutSidePuzzle(lst) -> List.map draw-cell-puzzle-sub lst
   in
   let main-lst =
     List.map (List.map (fun (x, y, lst) -> List.map (draw-cell-puzzle cell-w cell-h x y) lst)) coordinate-list
